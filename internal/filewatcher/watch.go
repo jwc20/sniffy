@@ -113,7 +113,7 @@ func resetTimer(timer *time.Timer) {
 }
 
 func loadPaths(watcher *fsnotify.Watcher, dirs []string) error {
-	toWatch := findAllDirs(dirs, maxDepth)
+	toWatch := FindAllDirs(dirs, maxDepth)
 	fmt.Printf("Watching %v directories. Use Ctrl-c to stop a run or exit.\n", len(toWatch))
 	for _, dir := range toWatch {
 		if err := watcher.Add(dir); err != nil {
@@ -123,7 +123,7 @@ func loadPaths(watcher *fsnotify.Watcher, dirs []string) error {
 	return nil
 }
 
-func findAllDirs(dirs []string, maxDepth int) []string {
+func FindAllDirs(dirs []string, maxDepth int) []string {
 	if len(dirs) == 0 {
 		dirs = []string{"./..."}
 	}

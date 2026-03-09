@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	filewatcher "github.com/jwc20/sniffa/internal/filewatcher"
 )
 
 type model struct {
@@ -17,17 +19,24 @@ type model struct {
 
 // ***************************************************************************
 
+const maxDepth = 7
+
 func main() {
+	// state := GetState()
+	// if state == nil {
+	// 	log.Fatal("Failed to get state")
+	// }
+
 	m := model{
 		altscreen: true,
 	}
 
-	logfilePath := os.Getenv("BUBBLETEA_LOG")
-	if logfilePath != "" {
-		if _, err := tea.LogToFile(logfilePath, "simple"); err != nil {
-			log.Fatal(err)
-		}
-	}
+	// logfilePath := os.Getenv("BUBBLETEA_LOG")
+	// if logfilePath != "" {
+	// 	if _, err := tea.LogToFile(logfilePath, "simple"); err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
 
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
@@ -89,7 +98,15 @@ func (m model) center(content string) string {
 // ***************************************************************************
 
 func (m model) View() tea.View {
+	dirs := os.Args[1:]
+	if len(dirs) == 0 {
+		dirs = []string{"./..."}
+	}
+	toWatch := filewatcher.FindAllDirs(dirs, maxDepth)
 	content := "Hello word"
+	content += fmt.Sprintf("\nWatching %v directories. Use Ctrl-c to stop a run or exit.\n", len(toWatch))
+	content += fmt.Sprint(toWatch)
+
 	if m.altscreen {
 		content = m.center(content)
 	}
