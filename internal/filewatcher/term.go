@@ -1,3 +1,5 @@
+// Package filewatcher
+// https://github.com/gotestyourself/gotestsum/blob/main/internal/filewatcher/term_unix.go
 package filewatcher
 
 import (
@@ -7,9 +9,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/jwc20/sniffa/log"
+	"github.com/jwc20/sniffa/internal/log"
 	"golang.org/x/sys/unix"
 )
+
+const tcGet = unix.TIOCGETA
+const tcSet = unix.TIOCSETA
 
 type terminal struct {
 	ch    chan Event
@@ -36,7 +41,7 @@ func (r *terminal) Start() {
 		return
 	}
 	r.reset = reset
-}``
+}
 
 func enableNonBlockingRead(fd int) (func(), error) {
 	term, err := unix.IoctlGetTermios(fd, tcGet)

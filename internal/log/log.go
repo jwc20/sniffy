@@ -1,3 +1,4 @@
+// Package log
 // https://github.com/gotestyourself/gotestsum/blob/06f60b3249917ddd1a04c8e2586116d1a87bc67c/internal/log/log.go
 package log
 

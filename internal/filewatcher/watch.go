@@ -1,3 +1,4 @@
+// Package filewatcher
 // https://github.com/gotestyourself/gotestsum/blob/06f60b3249917ddd1a04c8e2586116d1a87bc67c/internal/filewatcher/watch.go
 package filewatcher
 
@@ -11,7 +12,7 @@ import (
     "time"
 
     "github.com/fsnotify/fsnotify"
-    "github.com/jwc20/sniffa/log"
+    "github.com/jwc20/sniffa/internal/log"
 )
 
 const maxDepth = 7

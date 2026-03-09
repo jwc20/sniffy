@@ -5,6 +5,6 @@ import (
 	"testing"
 )
 
-func TestMain(m *testing.T) {
-	fmt.Println("Hello, TEST Worldadad !s")
+func TestSniffa(m *testing.T) {
+	fmt.Println("Hello, TEST Worldadad !ss")
 }
