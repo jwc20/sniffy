@@ -1,26 +1,15 @@
-package main
+package sniffa
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 
 	"github.com/jwc20/sniffa/internal/filewatcher"
 )
 
-func main() {
-	dirs := os.Args[1:]
-	if len(dirs) == 0 {
-		dirs = []string{"./..."}
-	}
-	if err := runWatcher(dirs, true); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func runWatcher(dirs []string, clearScreen bool) error {
+func RunWatcher(dirs []string, clearScreen bool) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	return filewatcher.Watch(ctx, dirs, clearScreen, runTests)
