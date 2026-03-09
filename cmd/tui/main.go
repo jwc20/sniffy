@@ -15,13 +15,13 @@ type model struct {
 	height    int
 }
 
+// ***************************************************************************
+
 func main() {
 	m := model{
 		altscreen: true,
 	}
 
-	// Log to a file. Useful in debugging since you can't really log to stdout.
-	// Not required.
 	logfilePath := os.Getenv("BUBBLETEA_LOG")
 	if logfilePath != "" {
 		if _, err := tea.LogToFile(logfilePath, "simple"); err != nil {
@@ -38,6 +38,8 @@ func main() {
 func (m model) Init() tea.Cmd {
 	return nil
 }
+
+// ***************************************************************************
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -83,6 +85,8 @@ func (m model) center(content string) string {
 	}
 	return sb.String()
 }
+
+// ***************************************************************************
 
 func (m model) View() tea.View {
 	content := "Hello word"
