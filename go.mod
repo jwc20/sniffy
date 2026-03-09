@@ -2,6 +2,18 @@ module github.com/jwc20/sniffa
 
 go 1.25.1
 
-require github.com/fsnotify/fsnotify v1.9.0
+require (
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	gotest.tools/gotestsum v1.13.0
+)
 
-require golang.org/x/sys v0.13.0 // indirect
+require (
+	github.com/bitfield/gotestdox v0.2.2 // indirect
+	github.com/fatih/color v1.18.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/term v0.35.0 // indirect
+	golang.org/x/text v0.17.0 // indirect
+)
