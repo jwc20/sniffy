@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+env:
+  PACKAGE_NAME: "github.com/jwc20/sniffa"
+
+tasks:
+  default:
+    desc: Run standard pre-commit checks
+    cmds:
+      - task: mod
+      - task: test
+      - task: build
+
+  mod:
+    desc: Download and tidy Go modules
+    cmds:
+      - go mod download
+      - go mod tidy
+
+  test:
+    desc: Run the test suite
+    aliases: [t]
+    cmds:
+      - go test -v ./...
+
+  build:
+    desc: Build the sniffa binary into /bin
+    sources:
+      - "./**/*.go"
+    generates:
+      - "./bin/sniffa"
+    cmds:
+      - go build -v -o ./bin/sniffa ./cmd/sniffa
+
+  install:
+    desc: Install sniffa to GOBIN
+    sources:
+      - "./**/*.go"
+    cmds:
+      - go install -v ./cmd/sniffa
+
+  run:
+    desc: Build and run sniffa locally
+    cmds:
+      - task: build
+      - ./bin/sniffa {{.CLI_ARGS | default "."}}
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf ./bin/
+      - rm -f cover.out
+
+  cover:
+    desc: Run tests with coverage report
+    cmds:
+      - go test -coverprofile=cover.out ./...
+      - go tool cover -html=cover.out
