@@ -114,7 +114,7 @@ func resetTimer(timer *time.Timer) {
 
 func loadPaths(watcher *fsnotify.Watcher, dirs []string) error {
 	toWatch := FindAllDirs(dirs, maxDepth)
-	fmt.Printf("Watching %v directories. Use Ctrl-c to stop a run or exit.\n", len(toWatch))
+	// fmt.Printf("Watching %v directories. Use Ctrl-c to stop a run or exit.\n", len(toWatch))
 	for _, dir := range toWatch {
 		if err := watcher.Add(dir); err != nil {
 			return fmt.Errorf("failed to watch directory %v: %w", dir, err)
@@ -261,11 +261,11 @@ func (h *fsEventHandler) runTests(opts Event) error {
 		opts.PkgPath = h.lastPath
 	}
 
-	if h.clearScreen {
-		fmt.Println("\033[H\033[2J")
-	}
+	// if h.clearScreen {
+	// 	fmt.Println("\033[H\033[2J")
+	// }
 
-	fmt.Printf("\nRunning tests in %v\n", opts.PkgPath)
+	// fmt.Printf("\nRunning tests in %v\n", opts.PkgPath)
 
 	if err := h.fn(opts); err != nil {
 		return err
