@@ -11,6 +11,10 @@ import (
 	filewatcher "github.com/jwc20/sniffa/internal/filewatcher"
 )
 
+type fileChangedMsg struct {
+	pkg string
+}
+
 type testResultMsg struct {
 	pkg    string
 	output string
@@ -31,6 +35,7 @@ type model struct {
 	tests   []Test
 	cursor  int
 	results chan testResultMsg
+	changes chan fileChangedMsg
 }
 
 func initTests(dirs []string) []Test {
@@ -56,19 +61,19 @@ func initTests(dirs []string) []Test {
 
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
-		startWatcher(m.dirs, m.results),
+		startWatcher(m.dirs, m.changes),
+		listenForChange(m.changes),
 		listenForResult(m.results),
 		runAllTestsCmd(m.tests),
 	)
 }
 
-func startWatcher(dirs []string, ch chan testResultMsg) tea.Cmd {
+func startWatcher(dirs []string, ch chan fileChangedMsg) tea.Cmd {
 	return func() tea.Msg {
 		go func() {
 			ctx := context.Background()
 			filewatcher.Watch(ctx, dirs, false, func(event filewatcher.Event) error {
-				out, passed := runTests(event.PkgPath)
-				ch <- testResultMsg{pkg: filepath.Clean(event.PkgPath), output: out, passed: passed}
+				ch <- fileChangedMsg{pkg: filepath.Clean(event.PkgPath)}
 				return nil
 			})
 		}()
@@ -76,9 +81,25 @@ func startWatcher(dirs []string, ch chan testResultMsg) tea.Cmd {
 	}
 }
 
+func listenForChange(ch chan fileChangedMsg) tea.Cmd {
+	return func() tea.Msg {
+		return <-ch
+	}
+}
+
 func listenForResult(ch chan testResultMsg) tea.Cmd {
 	return func() tea.Msg {
 		return <-ch
+	}
+}
+
+func runTestCmd(pkg string, results chan testResultMsg) tea.Cmd {
+	return func() tea.Msg {
+		go func() {
+			out, passed := runTests(pkg)
+			results <- testResultMsg{pkg: pkg, output: out, passed: passed}
+		}()
+		return nil
 	}
 }
 
@@ -103,12 +124,29 @@ func runTests(pkgPath string) (string, bool) {
 	return string(out), err == nil
 }
 
+func (m model) isEnabled(pkg string) bool {
+	for _, t := range m.tests {
+		if filepath.Clean(t.pkg) == pkg {
+			return t.enabled
+		}
+	}
+	return false
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
+
+	case fileChangedMsg:
+		var cmds []tea.Cmd
+		cmds = append(cmds, listenForChange(m.changes))
+		if m.isEnabled(msg.pkg) {
+			cmds = append(cmds, runTestCmd(msg.pkg, m.results))
+		}
+		return m, tea.Batch(cmds...)
 
 	case testResultMsg:
 		for i, t := range m.tests {
@@ -131,9 +169,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.tests)-1 {
 				m.cursor++
 			}
-		case " ", "enter":
+		case "space":
 			if len(m.tests) > 0 {
-				m.tests[m.cursor].enabled = !m.tests[m.cursor].enabled
+				t := &m.tests[m.cursor]
+				t.enabled = !t.enabled
+				if t.enabled {
+					return m, runTestCmd(t.pkg, m.results)
+				}
 			}
 		}
 	}

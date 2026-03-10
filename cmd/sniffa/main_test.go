@@ -3,7 +3,9 @@ package main
 import "testing"
 
 func TestMain(t *testing.T) {
-	if 1 != 0 {
-		t.Fatal("test failed")
+	t.Log("I am main")
+
+	if 1 == 1 {
+		t.Fail()
 	}
 }

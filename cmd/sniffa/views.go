@@ -1,9 +1,8 @@
 package main
 
 import (
-	"strings"
-
 	"image/color"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -44,6 +43,9 @@ func (m model) View() tea.View {
 }
 
 func testColor(t Test) color.Color {
+	if !t.enabled {
+		return colorMuted
+	}
 	if t.result == nil {
 		return colorHighlight
 	}
