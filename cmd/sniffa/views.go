@@ -108,15 +108,26 @@ func buildOutput(result *testResultMsg, width, height int) string {
 
 	var sb strings.Builder
 	for _, line := range strings.Split(result.output, "\n") {
+		// switch {
+		// case strings.HasPrefix(line, "[PASS]"):
+		// 	sb.WriteString(passStyle.Render(line) + "\n")
+		// case strings.HasPrefix(line, "[FAIL]"):
+		// 	sb.WriteString(failStyle.Render(line) + "\n")
+		// case strings.HasPrefix(line, "--- FAIL"):
+		// 	sb.WriteString(failStyle.Render(line) + "\n")
+		// case strings.HasPrefix(line, "--- PASS"), strings.HasPrefix(line, "ok"):
+		// 	sb.WriteString(passStyle.Render(line) + "\n")
+		// default:
+		// 	sb.WriteString(line + "\n")
+		// }
 		switch {
-		case strings.HasPrefix(line, "[PASS]"):
-			sb.WriteString(passStyle.Render(line) + "\n")
-		case strings.HasPrefix(line, "[FAIL]"):
+		case strings.Contains(line, "--- FAIL"):
 			sb.WriteString(failStyle.Render(line) + "\n")
-		case strings.HasPrefix(line, "--- FAIL"):
-			sb.WriteString(failStyle.Render(line) + "\n")
-		case strings.HasPrefix(line, "--- PASS"), strings.HasPrefix(line, "ok"):
+		case strings.Contains(line, "--- PASS"), strings.Contains(line, "ok"):
 			sb.WriteString(passStyle.Render(line) + "\n")
+		case strings.HasPrefix(line, "=== RUN"), strings.HasPrefix(line, "FAIL"):
+			// sb.WriteString("")
+			continue
 		default:
 			sb.WriteString(line + "\n")
 		}
