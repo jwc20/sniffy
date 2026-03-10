@@ -51,9 +51,9 @@ func Watch(ctx context.Context, dirs []string, clearScreen bool, run func(Event)
 	timer := time.NewTimer(maxIdleTime)
 	defer timer.Stop()
 
-	term := newTerminal()
-	defer term.Reset()
-	go term.Monitor(ctx)
+	// term := newTerminal()
+	// defer term.Reset()
+	// go term.Monitor(ctx)
 
 	h := &fsEventHandler{
 		last:        time.Now(),
@@ -67,23 +67,23 @@ func Watch(ctx context.Context, dirs []string, clearScreen bool, run func(Event)
 		case <-timer.C:
 			return fmt.Errorf("exceeded idle timeout while watching files")
 
-		case event := <-term.Events():
-			resetTimer(timer)
+		// case event := <-term.Events():
+		// 	resetTimer(timer)
 
-			if event.reloadPaths {
-				if err := loadPaths(watcher, dirs); err != nil {
-					return err
-				}
-				close(event.resume)
-				continue
-			}
+		// 	if event.reloadPaths {
+		// 		if err := loadPaths(watcher, dirs); err != nil {
+		// 			return err
+		// 		}
+		// 		close(event.resume)
+		// 		continue
+		// 	}
 
-			term.Reset()
-			if err := h.runTests(event); err != nil {
-				return fmt.Errorf("failed to rerun tests for %v: %v", event.PkgPath, err)
-			}
-			term.Start()
-			close(event.resume)
+		// 	term.Reset()
+		// 	if err := h.runTests(event); err != nil {
+		// 		return fmt.Errorf("failed to rerun tests for %v: %v", event.PkgPath, err)
+		// 	}
+		// 	term.Start()
+		// 	close(event.resume)
 
 		case event := <-watcher.Events:
 			resetTimer(timer)

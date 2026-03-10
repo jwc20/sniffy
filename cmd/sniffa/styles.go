@@ -17,10 +17,9 @@ var (
 	colorFail      color.Color
 	colorMuted     color.Color
 	colorHighlight color.Color
+	colorCursor    color.Color
 
-	panelStyle     lipgloss.Style
-	titleStyle     lipgloss.Style
-	mainTitleStyle lipgloss.Style
+	panelStyle lipgloss.Style
 )
 
 func initColors() {
@@ -33,6 +32,7 @@ func initColors() {
 	colorFail = lightDark(lipgloss.Color("#C62828"), lipgloss.Color("#EF5350"))
 	colorMuted = lightDark(lipgloss.Color("#757575"), lipgloss.Color("#757575"))
 	colorHighlight = lightDark(lipgloss.Color("#1565C0"), lipgloss.Color("#42A5F5"))
+	colorCursor = lightDark(lipgloss.Color("#F57F17"), lipgloss.Color("#FFD54F"))
 
 	panelStyle = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
