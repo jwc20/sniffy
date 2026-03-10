@@ -7,7 +7,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"charm.land/lipgloss/v2/tree"
 	filewatcher "github.com/jwc20/sniffa/internal/filewatcher"
 )
 
@@ -24,7 +23,8 @@ func (m model) View() tea.View {
 		BorderStyle(lipgloss.NormalBorder()).BorderBottom(true).
 		BorderForeground(colorBorder).Width(sidebarWidth-2).Padding(0, 1)
 
-	sidebarInner := titleStyle.Render("sniffa") + "\n" + buildTree(m.dirs, m.activeFile, sidebarWidth-2)
+	sidebarInner := titleStyle.Render("sniffa") + "\n"
+	sidebarInner += buildFileList(m.dirs, m.activeFile, sidebarWidth-2)
 	sidebar := panelStyle.Width(sidebarWidth).Height(m.height - 2).Render(sidebarInner)
 
 	// Main Content
@@ -40,61 +40,59 @@ func (m model) View() tea.View {
 	return v
 }
 
-func buildTree(dirs []string, activeFile string, width int) string {
-	enumeratorStyle := lipgloss.NewStyle().Foreground(colorMuted).PaddingRight(1)
+func buildFileList(dirs []string, activeFile string, width int) string {
 	itemStyle := lipgloss.NewStyle().Foreground(colorHighlight)
 	activeStyle := lipgloss.NewStyle().Foreground(colorPass).Bold(true)
+	mutedStyle := lipgloss.NewStyle().Foreground(colorMuted)
 
+	// Use the utility to get the scoped directories
 	toWatch := filewatcher.FindAllDirs(dirs, maxDepth)
 
-	pwd, _ := os.Getwd()
-	base := filepath.Base(pwd)
+	// pwd, _ := os.Getwd()
+	var testFiles []string
 
-	root := tree.Root(base).
-		IndenterStyle(enumeratorStyle).
-		EnumeratorStyle(enumeratorStyle).
-		RootStyle(lipgloss.NewStyle().Foreground(colorTitle).Bold(true)).
-		ItemStyle(itemStyle)
-
+	// Collect all _test.go files from the watched directories
 	for _, dir := range toWatch {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue
 		}
 
-		relDir, _ := filepath.Rel(pwd, dir)
-		if relDir == "." {
-			for _, e := range entries {
-				if strings.HasSuffix(e.Name(), "_test.go") {
-					name := e.Name()
-					style := itemStyle
-					if strings.Contains(activeFile, strings.TrimSuffix(name, "_test.go")) {
-						style = activeStyle
-					}
-					root.Child(style.Render(name))
-				}
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), "_test.go") {
+				// Construct the full relative path
+				fullPath := filepath.Join(dir, e.Name())
+				testFiles = append(testFiles, fullPath)
+				// fmt.Println(fullPath)
+				// relPath, err := filepath.Rel(pwd, fullPath)
+				// fmt.Println(relPath)
+				// if err == nil {
+				// 	testFiles = append(testFiles, relPath)
+				// }
 			}
-		} else {
-			branch := tree.Root(relDir)
-			for _, e := range entries {
-				if strings.HasSuffix(e.Name(), "_test.go") {
-					name := e.Name()
-					style := itemStyle
-					if strings.Contains(activeFile, strings.TrimSuffix(name, "_test.go")) {
-						style = activeStyle
-					}
-					branch.Child(style.Render(name))
-				}
-			}
-			root.Child(branch)
 		}
+	}
+
+	if len(testFiles) == 0 {
+		return mutedStyle.Render(" No tests found within depth...")
+	}
+
+	var sb strings.Builder
+	for _, path := range testFiles {
+		style := itemStyle
+
+		// If the active path (from testResultMsg) matches or is contained in this path
+		if activeFile != "" && strings.Contains(path, activeFile) {
+			style = activeStyle
+		}
+
+		sb.WriteString(style.Render(path) + "\n")
 	}
 
 	return lipgloss.NewStyle().
 		MaxWidth(width).
-		Render(root.String())
+		Render(sb.String())
 }
-
 func buildOutput(lines []string, width, height int) string {
 	passStyle := lipgloss.NewStyle().Foreground(colorPass).Bold(true)
 	failStyle := lipgloss.NewStyle().Foreground(colorFail).Bold(true)

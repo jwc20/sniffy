@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -72,7 +74,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if len(m.output) > 100 {
 			m.output = m.output[len(m.output)-100:]
 		}
-		m.activeFile = msg.pkg
+		pwd, _ := os.Getwd()
+		relPkg, _ := filepath.Rel(pwd, msg.pkg)
+		m.activeFile = relPkg
 		return m, watchCmd(m.dirs)
 
 	case tea.KeyPressMsg:
