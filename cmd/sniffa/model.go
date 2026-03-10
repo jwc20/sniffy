@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -16,7 +18,7 @@ type fileChangedMsg struct {
 }
 
 type testResultMsg struct {
-	pkg    string
+	path   string
 	output string
 	passed bool
 }
@@ -24,6 +26,7 @@ type testResultMsg struct {
 type Test struct {
 	path    string
 	pkg     string
+	names   []string
 	enabled bool
 	result  *testResultMsg
 }
@@ -38,6 +41,25 @@ type model struct {
 	changes chan fileChangedMsg
 }
 
+var testFuncRe = regexp.MustCompile(`^func (Test\w+)\(`)
+
+func parseTestNames(filePath string) []string {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	var names []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if m := testFuncRe.FindStringSubmatch(scanner.Text()); m != nil {
+			names = append(names, m[1])
+		}
+	}
+	return names
+}
+
 func initTests(dirs []string) []Test {
 	toWatch := filewatcher.FindAllDirs(dirs, maxDepth)
 	var tests []Test
@@ -48,9 +70,11 @@ func initTests(dirs []string) []Test {
 		}
 		for _, e := range entries {
 			if !e.IsDir() && strings.HasSuffix(e.Name(), "_test.go") {
+				fullPath := filepath.Join(dir, e.Name())
 				tests = append(tests, Test{
-					path:    filepath.Join(dir, e.Name()),
+					path:    fullPath,
 					pkg:     filepath.Clean(dir),
+					names:   parseTestNames(fullPath),
 					enabled: true,
 				})
 			}
@@ -64,7 +88,7 @@ func (m model) Init() tea.Cmd {
 		startWatcher(m.dirs, m.changes),
 		listenForChange(m.changes),
 		listenForResult(m.results),
-		runAllTestsCmd(m.tests),
+		runAllTestsCmd(m.tests, m.results),
 	)
 }
 
@@ -93,44 +117,47 @@ func listenForResult(ch chan testResultMsg) tea.Cmd {
 	}
 }
 
-func runTestCmd(pkg string, results chan testResultMsg) tea.Cmd {
+func runTestCmd(t Test, results chan testResultMsg) tea.Cmd {
 	return func() tea.Msg {
 		go func() {
-			out, passed := runTests(pkg)
-			results <- testResultMsg{pkg: pkg, output: out, passed: passed}
+			out, passed := runTests(t.pkg, t.names)
+			results <- testResultMsg{path: t.path, output: out, passed: passed}
 		}()
 		return nil
 	}
 }
 
-func runAllTestsCmd(tests []Test) tea.Cmd {
+func runAllTestsCmd(tests []Test, results chan testResultMsg) tea.Cmd {
 	var cmds []tea.Cmd
 	for _, t := range tests {
 		t := t
 		if t.enabled {
-			cmds = append(cmds, func() tea.Msg {
-				out, passed := runTests(t.pkg)
-				return testResultMsg{pkg: t.pkg, output: out, passed: passed}
-			})
+			cmds = append(cmds, runTestCmd(t, results))
 		}
 	}
 	return tea.Batch(cmds...)
 }
 
-func runTests(pkgPath string) (string, bool) {
-	cmd := exec.Command("go", "test", "-v", ".")
+func runTests(pkgPath string, names []string) (string, bool) {
+	args := []string{"test", "-v"}
+	if len(names) > 0 {
+		args = append(args, "-run", "^("+strings.Join(names, "|")+")$")
+	}
+	args = append(args, ".")
+	cmd := exec.Command("go", args...)
 	cmd.Dir = pkgPath
 	out, err := cmd.CombinedOutput()
 	return string(out), err == nil
 }
 
-func (m model) isEnabled(pkg string) bool {
+func (m model) testsForPkg(pkg string) []Test {
+	var out []Test
 	for _, t := range m.tests {
-		if filepath.Clean(t.pkg) == pkg {
-			return t.enabled
+		if t.pkg == pkg {
+			out = append(out, t)
 		}
 	}
-	return false
+	return out
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -143,14 +170,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fileChangedMsg:
 		var cmds []tea.Cmd
 		cmds = append(cmds, listenForChange(m.changes))
-		if m.isEnabled(msg.pkg) {
-			cmds = append(cmds, runTestCmd(msg.pkg, m.results))
+		for _, t := range m.testsForPkg(msg.pkg) {
+			if t.enabled {
+				cmds = append(cmds, runTestCmd(t, m.results))
+			}
 		}
 		return m, tea.Batch(cmds...)
 
 	case testResultMsg:
 		for i, t := range m.tests {
-			if filepath.Clean(t.pkg) == filepath.Clean(msg.pkg) {
+			if t.path == msg.path {
 				result := msg
 				m.tests[i].result = &result
 			}
@@ -174,7 +203,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				t := &m.tests[m.cursor]
 				t.enabled = !t.enabled
 				if t.enabled {
-					return m, runTestCmd(t.pkg, m.results)
+					return m, runTestCmd(*t, m.results)
 				}
 			}
 		}
