@@ -3,6 +3,8 @@
 A terminal UI for watching and running Go tests. Sniffa monitors your project for file changes and reruns tests
 automatically, with a sidebar for navigating test files and a live output panel.
 
+![screenshot](https://github.com/user-attachments/assets/cee817ae-301d-47c2-bf5d-f647f30f11e0)
+
 ## Features
 
 - Watches `.go` files for changes and reruns affected tests immediately
