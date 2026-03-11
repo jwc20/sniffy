@@ -32,6 +32,27 @@ type Scent struct {
 	Runners    []RunnerConfig    `yaml:"runners"`
 }
 
+func (s *Scent) Extensions() []string {
+	if s == nil {
+		return []string{".go"}
+	}
+	seen := map[string]bool{}
+	var exts []string
+	for _, v := range s.Validators {
+		for _, e := range v.Extensions {
+			ext := strings.ToLower(e)
+			if !seen[ext] {
+				seen[ext] = true
+				exts = append(exts, ext)
+			}
+		}
+	}
+	if len(exts) == 0 {
+		return []string{".go"}
+	}
+	return exts
+}
+
 func (s *Scent) IsTestFile(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	base := filepath.Base(filename)

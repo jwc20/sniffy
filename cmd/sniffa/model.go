@@ -43,6 +43,7 @@ type model struct {
 	results chan testResultMsg
 	changes chan fileChangedMsg
 	scent   *scent.Scent
+	styles  Styles
 }
 
 var testFuncRe = regexp.MustCompile(`^func (Test\w+)\(`)
@@ -64,31 +65,39 @@ func parseTestNames(filePath string) []string {
 	return names
 }
 
-func scentExtensions(s *scent.Scent) []string {
-	if s == nil {
-		return []string{".go"}
-	}
-	seen := map[string]bool{}
-	var exts []string
-	for _, v := range s.Validators {
-		for _, e := range v.Extensions {
-			ext := strings.ToLower(e)
-			if !seen[ext] {
-				seen[ext] = true
-				exts = append(exts, ext)
-			}
+func processTestFile(dir, name string, exts []string, s *scent.Scent) (Test, bool) {
+	for _, ext := range exts {
+		if !strings.HasSuffix(name, ext) {
+			continue
 		}
+		fullPath := filepath.Join(dir, name)
+		if ext == ".go" && !strings.HasSuffix(name, "_test.go") {
+			return Test{}, false
+		} else if s != nil && !s.IsTestFile(fullPath) {
+			return Test{}, false
+		} else if ext != ".go" && s == nil {
+			return Test{}, false
+		}
+		t := Test{
+			path:    fullPath,
+			pkg:     filepath.Clean(dir),
+			enabled: true,
+		}
+		if ext == ".go" {
+			t.names = parseTestNames(fullPath)
+		} else if s != nil {
+			t.runner = s.RunnerForFile(fullPath)
+		}
+		return t, true
 	}
-	if len(exts) == 0 {
-		return []string{".go"}
-	}
-	return exts
+	return Test{}, false
 }
 
 func initTests(dirs []string, s *scent.Scent) []Test {
-	exts := scentExtensions(s)
+	exts := s.Extensions()
 	toWatch := filewatcher.FindAllDirs(dirs, maxDepth, exts)
 	var tests []Test
+
 	for _, dir := range toWatch {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
@@ -98,35 +107,8 @@ func initTests(dirs []string, s *scent.Scent) []Test {
 			if e.IsDir() {
 				continue
 			}
-			name := e.Name()
-			for _, ext := range exts {
-				if !strings.HasSuffix(name, ext) {
-					continue
-				}
-				fullPath := filepath.Join(dir, name)
-				if ext == ".go" {
-					if !strings.HasSuffix(name, "_test.go") {
-						continue
-					}
-				} else if s != nil {
-					if !s.IsTestFile(fullPath) {
-						continue
-					}
-				} else {
-					continue
-				}
-				t := Test{
-					path:    fullPath,
-					pkg:     filepath.Clean(dir),
-					enabled: true,
-				}
-				if ext == ".go" {
-					t.names = parseTestNames(fullPath)
-				} else if s != nil {
-					t.runner = s.RunnerForFile(fullPath)
-				}
+			if t, ok := processTestFile(dir, e.Name(), exts, s); ok {
 				tests = append(tests, t)
-				break
 			}
 		}
 	}

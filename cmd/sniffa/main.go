@@ -11,8 +11,6 @@ import (
 const maxDepth = 10
 
 func main() {
-	initColors()
-
 	dirs := os.Args[1:]
 	if len(dirs) == 0 {
 		dirs = []string{"./..."}
@@ -30,6 +28,7 @@ func main() {
 		results: make(chan testResultMsg, 32),
 		changes: make(chan fileChangedMsg, 32),
 		scent:   s,
+		styles:  DefaultStyles(),
 	}
 
 	p := tea.NewProgram(m)
