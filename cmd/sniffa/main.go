@@ -5,6 +5,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
+	scent "github.com/jwc20/sniffa/internal/scent"
 )
 
 const maxDepth = 10
@@ -17,11 +18,18 @@ func main() {
 		dirs = []string{"./..."}
 	}
 
+	s, _ := scent.Load(".")
+
+	if s != nil && len(s.WatchPaths) > 0 {
+		dirs = s.WatchPaths
+	}
+
 	m := model{
 		dirs:    dirs,
-		tests:   initTests(dirs),
+		tests:   initTests(dirs, s),
 		results: make(chan testResultMsg, 32),
 		changes: make(chan fileChangedMsg, 32),
+		scent:   s,
 	}
 
 	p := tea.NewProgram(m)

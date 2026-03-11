@@ -19,7 +19,8 @@ const maxIdleTime = time.Hour
 var floodThreshold = 250 * time.Millisecond
 
 type Event struct {
-	PkgPath string
+	PkgPath  string
+	Filename string
 }
 
 func Watch(ctx context.Context, dirs []string, run func(Event) error) error {
@@ -66,7 +67,7 @@ func resetTimer(timer *time.Timer) {
 }
 
 func loadPaths(watcher *fsnotify.Watcher, dirs []string) error {
-	for _, dir := range FindAllDirs(dirs, maxDepth) {
+	for _, dir := range FindAllDirs(dirs, maxDepth, nil) {
 		if err := watcher.Add(dir); err != nil {
 			return fmt.Errorf("failed to watch directory %v: %w", dir, err)
 		}
@@ -74,16 +75,19 @@ func loadPaths(watcher *fsnotify.Watcher, dirs []string) error {
 	return nil
 }
 
-func FindAllDirs(dirs []string, maxDepth int) []string {
+func FindAllDirs(dirs []string, maxDepth int, exts []string) []string {
 	if len(dirs) == 0 {
 		dirs = []string{"./..."}
+	}
+	if len(exts) == 0 {
+		exts = []string{".go"}
 	}
 	var output []string
 	for _, dir := range dirs {
 		const recur = "/..."
 		if strings.HasSuffix(dir, recur) {
 			dir = strings.TrimSuffix(dir, recur)
-			output = append(output, findSubDirs(dir, maxDepth)...)
+			output = append(output, findSubDirs(dir, maxDepth, exts)...)
 			continue
 		}
 		output = append(output, dir)
@@ -91,7 +95,7 @@ func FindAllDirs(dirs []string, maxDepth int) []string {
 	return output
 }
 
-func findSubDirs(rootDir string, maxDepth int) []string {
+func findSubDirs(rootDir string, maxDepth int, exts []string) []string {
 	var output []string
 	maxDepth += pathDepth(rootDir)
 	walker := func(path string, info os.FileInfo, err error) error {
@@ -105,7 +109,7 @@ func findSubDirs(rootDir string, maxDepth int) []string {
 		if pathDepth(path) > maxDepth || exclude(path) {
 			return filepath.SkipDir
 		}
-		if hasGoFiles(path) {
+		if hasMatchingFiles(path, exts) {
 			output = append(output, path)
 		}
 		return nil
@@ -123,7 +127,7 @@ func exclude(path string) bool {
 	return (strings.HasPrefix(base, ".") && len(base) > 1) || base == "vendor" || base == "testdata"
 }
 
-func hasGoFiles(path string) bool {
+func hasMatchingFiles(path string, exts []string) bool {
 	fh, err := os.Open(path)
 	if err != nil {
 		return false
@@ -138,8 +142,10 @@ func hasGoFiles(path string) bool {
 			return false
 		}
 		for _, name := range names {
-			if strings.HasSuffix(name, ".go") {
-				return true
+			for _, ext := range exts {
+				if strings.HasSuffix(name, ext) {
+					return true
+				}
 			}
 		}
 	}
@@ -168,13 +174,16 @@ func (h *fsEventHandler) handleEvent(event fsnotify.Event) error {
 	if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Rename) == 0 {
 		return nil
 	}
-	if !strings.HasSuffix(event.Name, ".go") {
+	if strings.HasPrefix(filepath.Base(event.Name), ".") {
 		return nil
 	}
 	if time.Since(h.last) < floodThreshold {
 		return nil
 	}
-	if err := h.fn(Event{PkgPath: "./" + filepath.Dir(event.Name)}); err != nil {
+	if err := h.fn(Event{
+		PkgPath:  "./" + filepath.Dir(event.Name),
+		Filename: event.Name,
+	}); err != nil {
 		return err
 	}
 	h.last = time.Now()

@@ -121,11 +121,11 @@ func buildOutput(result *testResultMsg, width, height int) string {
 		// 	sb.WriteString(line + "\n")
 		// }
 		switch {
-		case strings.Contains(line, "--- FAIL"):
+		case strings.Contains(line, "FAIL"):
 			sb.WriteString(failStyle.Render(line) + "\n")
-		case strings.Contains(line, "--- PASS"), strings.Contains(line, "ok"):
+		case strings.Contains(line, "PASS"), strings.Contains(line, "ok"), strings.Contains(line, "passed"):
 			sb.WriteString(passStyle.Render(line) + "\n")
-		case strings.HasPrefix(line, "=== RUN"), strings.HasPrefix(line, "FAIL"):
+		case strings.HasPrefix(line, "=== RUN"):
 			// sb.WriteString("")
 			continue
 		default:

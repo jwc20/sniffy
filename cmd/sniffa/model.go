@@ -11,10 +11,12 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	filewatcher "github.com/jwc20/sniffa/internal/filewatcher"
+	scent "github.com/jwc20/sniffa/internal/scent"
 )
 
 type fileChangedMsg struct {
-	pkg string
+	pkg      string
+	filename string
 }
 
 type testResultMsg struct {
@@ -27,6 +29,7 @@ type Test struct {
 	path    string
 	pkg     string
 	names   []string
+	runner  *scent.RunnerConfig
 	enabled bool
 	result  *testResultMsg
 }
@@ -39,6 +42,7 @@ type model struct {
 	cursor  int
 	results chan testResultMsg
 	changes chan fileChangedMsg
+	scent   *scent.Scent
 }
 
 var testFuncRe = regexp.MustCompile(`^func (Test\w+)\(`)
@@ -60,8 +64,30 @@ func parseTestNames(filePath string) []string {
 	return names
 }
 
-func initTests(dirs []string) []Test {
-	toWatch := filewatcher.FindAllDirs(dirs, maxDepth)
+func scentExtensions(s *scent.Scent) []string {
+	if s == nil {
+		return []string{".go"}
+	}
+	seen := map[string]bool{}
+	var exts []string
+	for _, v := range s.Validators {
+		for _, e := range v.Extensions {
+			ext := strings.ToLower(e)
+			if !seen[ext] {
+				seen[ext] = true
+				exts = append(exts, ext)
+			}
+		}
+	}
+	if len(exts) == 0 {
+		return []string{".go"}
+	}
+	return exts
+}
+
+func initTests(dirs []string, s *scent.Scent) []Test {
+	exts := scentExtensions(s)
+	toWatch := filewatcher.FindAllDirs(dirs, maxDepth, exts)
 	var tests []Test
 	for _, dir := range toWatch {
 		entries, err := os.ReadDir(dir)
@@ -69,14 +95,38 @@ func initTests(dirs []string) []Test {
 			continue
 		}
 		for _, e := range entries {
-			if !e.IsDir() && strings.HasSuffix(e.Name(), "_test.go") {
-				fullPath := filepath.Join(dir, e.Name())
-				tests = append(tests, Test{
+			if e.IsDir() {
+				continue
+			}
+			name := e.Name()
+			for _, ext := range exts {
+				if !strings.HasSuffix(name, ext) {
+					continue
+				}
+				fullPath := filepath.Join(dir, name)
+				if ext == ".go" {
+					if !strings.HasSuffix(name, "_test.go") {
+						continue
+					}
+				} else if s != nil {
+					if !s.IsTestFile(fullPath) {
+						continue
+					}
+				} else {
+					continue
+				}
+				t := Test{
 					path:    fullPath,
 					pkg:     filepath.Clean(dir),
-					names:   parseTestNames(fullPath),
 					enabled: true,
-				})
+				}
+				if ext == ".go" {
+					t.names = parseTestNames(fullPath)
+				} else if s != nil {
+					t.runner = s.RunnerForFile(fullPath)
+				}
+				tests = append(tests, t)
+				break
 			}
 		}
 	}
@@ -97,7 +147,7 @@ func startWatcher(dirs []string, ch chan fileChangedMsg) tea.Cmd {
 		go func() {
 			ctx := context.Background()
 			filewatcher.Watch(ctx, dirs, func(event filewatcher.Event) error {
-				ch <- fileChangedMsg{pkg: filepath.Clean(event.PkgPath)}
+				ch <- fileChangedMsg{pkg: filepath.Clean(event.PkgPath), filename: event.Filename}
 				return nil
 			})
 		}()
@@ -120,7 +170,13 @@ func listenForResult(ch chan testResultMsg) tea.Cmd {
 func runTestCmd(t Test, results chan testResultMsg) tea.Cmd {
 	return func() tea.Msg {
 		go func() {
-			out, passed := runTests(t.pkg, t.names)
+			var out string
+			var passed bool
+			if t.runner != nil {
+				out, passed = t.runner.Execute()
+			} else {
+				out, passed = runGoTests(t.pkg, t.names)
+			}
 			results <- testResultMsg{path: t.path, output: out, passed: passed}
 		}()
 		return nil
@@ -138,7 +194,7 @@ func runAllTestsCmd(tests []Test, results chan testResultMsg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func runTests(pkgPath string, names []string) (string, bool) {
+func runGoTests(pkgPath string, names []string) (string, bool) {
 	args := []string{"test", "-v"}
 	if len(names) > 0 {
 		args = append(args, "-run", "^("+strings.Join(names, "|")+")$")

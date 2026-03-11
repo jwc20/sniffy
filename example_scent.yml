@@ -1,0 +1,25 @@
+watch_paths:
+  - .
+  - tests/
+
+validators:
+  - name: go_files
+    extensions: [.go]
+    runner: go_tests
+  - name: js_files
+    extensions: [.js, .ts]
+    runner: js_tests
+  - name: python_files
+    extensions: [.py]
+    runner: py_tests
+
+runners:
+  - name: go_tests
+    command: go test -v ./...
+    dir: .
+  - name: js_tests
+    command: npm test
+    dir: .
+  - name: py_tests
+    command: pytest
+    dir: .
