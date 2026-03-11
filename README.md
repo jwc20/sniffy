@@ -64,3 +64,4 @@ entire package.
 - [gotestyourself/gotestsum](https://github.com/gotestyourself/gotestsum) — the file watcher implementation is adapted
   from gotestsum
 - [lusingander/gotip](https://github.com/lusingander/gotip)
+- [sniffer](https://github.com/jwc20/sniffer)
