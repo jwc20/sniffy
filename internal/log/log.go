@@ -1,75 +1,33 @@
-// Package log
-// https://github.com/gotestyourself/gotestsum/blob/06f60b3249917ddd1a04c8e2586116d1a87bc67c/internal/log/log.go
 package log
 
 import (
     "fmt"
-
-    "github.com/fatih/color"
+    "os"
 )
 
 type Level uint8
 
 const (
-    ErrorLevel Level = iota
-    WarnLevel
-    InfoLevel
+    WarnLevel Level = iota
     DebugLevel
 )
 
-var (
-    level = WarnLevel
-    out   = color.Error
-)
+var level = WarnLevel
 
-// SetLevel for the global logger.
 func SetLevel(l Level) {
     level = l
 }
 
-// Warnf prints the message to stderr, with a yellow WARN prefix.
 func Warnf(format string, args ...interface{}) {
     if level < WarnLevel {
         return
     }
-    fmt.Fprint(out, color.YellowString("WARN "))
-    fmt.Fprintf(out, format, args...)
-    fmt.Fprint(out, "\n")
+    fmt.Fprintf(os.Stderr, "WARN "+format+"\n", args...)
 }
 
-// Debugf prints the message to stderr, with no prefix.
 func Debugf(format string, args ...interface{}) {
     if level < DebugLevel {
         return
     }
-    fmt.Fprintf(out, format, args...)
-    fmt.Fprint(out, "\n")
-}
-
-// Infof prints the message to stderr, with no prefix.
-func Infof(format string, args ...interface{}) {
-    if level < InfoLevel {
-        return
-    }
-    fmt.Fprintf(out, format, args...)
-    fmt.Fprint(out, "\n")
-}
-
-// Errorf prints the message to stderr, with a red ERROR prefix.
-func Errorf(format string, args ...interface{}) {
-    if level < ErrorLevel {
-        return
-    }
-    fmt.Fprint(out, color.RedString("ERROR "))
-    fmt.Fprintf(out, format, args...)
-    fmt.Fprint(out, "\n")
-}
-
-// Error prints the message to stderr, with a red ERROR prefix.
-func Error(msg string) {
-    if level < ErrorLevel {
-        return
-    }
-    fmt.Fprint(out, color.RedString("ERROR "))
-    fmt.Fprintln(out, msg)
+    fmt.Fprintf(os.Stderr, format+"\n", args...)
 }

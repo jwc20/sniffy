@@ -96,7 +96,7 @@ func startWatcher(dirs []string, ch chan fileChangedMsg) tea.Cmd {
 	return func() tea.Msg {
 		go func() {
 			ctx := context.Background()
-			filewatcher.Watch(ctx, dirs, false, func(event filewatcher.Event) error {
+			filewatcher.Watch(ctx, dirs, func(event filewatcher.Event) error {
 				ch <- fileChangedMsg{pkg: filepath.Clean(event.PkgPath)}
 				return nil
 			})
