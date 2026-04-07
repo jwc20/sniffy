@@ -1,6 +1,6 @@
-# sniffa
+# sniffy
 
-A terminal UI for watching and running Go tests. Sniffa monitors your project for file changes and reruns tests
+A terminal UI for watching and running Go tests. sniffy monitors your project for file changes and reruns tests
 automatically, with a sidebar for navigating test files and a live output panel.
 
 ![screenshot](https://github.com/user-attachments/assets/cee817ae-301d-47c2-bf5d-f647f30f11e0)
@@ -18,18 +18,18 @@ automatically, with a sidebar for navigating test files and a live output panel.
 ## Installation
 
 ```bash
-go install github.com/jwc20/sniffa/cmd/sniffa@latest
+go install github.com/jwc20/sniffy/cmd/sniffy@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/jwc20/sniffa
-cd sniffa
+git clone https://github.com/jwc20/sniffy
+cd sniffy
 task build
 ```
 
-The binary is placed in `./bin/sniffa`.
+The binary is placed in `./bin/sniffy`.
 
 ## Keybindings
 
@@ -42,7 +42,7 @@ The binary is placed in `./bin/sniffa`.
 
 ## How it works
 
-On startup, sniffa:
+On startup, sniffy:
 
 1. Walks the given directories (up to `maxDepth = 10`) and finds all `_test.go` files
 2. Parses each file to extract `TestXxx` function names

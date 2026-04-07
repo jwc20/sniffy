@@ -32,7 +32,7 @@ type Scent struct {
 	Runners    []RunnerConfig    `yaml:"runners"`
 }
 
-// defaultExtensions are the extensions sniffa supports out of the box,
+// defaultExtensions are the extensions sniffy supports out of the box,
 // without requiring a scent.yml.
 var defaultExtensions = []string{
 	".go",
@@ -111,7 +111,7 @@ func (s *Scent) IsTestFile(filename string) bool {
 }
 
 // IsDefaultTestFile reports whether a filename looks like a test file for the
-// given extension using sniffa's built-in heuristics. This is used when no
+// given extension using sniffy's built-in heuristics. This is used when no
 // scent.yml is present.
 func IsDefaultTestFile(base, ext string) bool {
 	switch ext {

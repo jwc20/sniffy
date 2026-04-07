@@ -20,7 +20,7 @@ func (m model) View() tea.View {
 		BorderStyle(lipgloss.NormalBorder()).BorderBottom(true).
 		BorderForeground(m.styles.Border).Width(sidebarWidth-2).Padding(0, 1)
 
-	sidebarInner := titleStyle.Render("sniffa") + "\n"
+	sidebarInner := titleStyle.Render("sniffy") + "\n"
 	sidebarInner += buildFileList(m.tests, m.cursor, sidebarWidth-2, m.styles)
 	sidebar := m.styles.Panel.Width(sidebarWidth).Height(m.height - 2).Render(sidebarInner)
 

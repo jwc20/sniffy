@@ -1,4 +1,4 @@
-module github.com/jwc20/sniffa
+module github.com/jwc20/sniffy
 
 go 1.25.1
 

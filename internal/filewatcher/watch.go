@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/jwc20/sniffa/internal/log"
+	"github.com/jwc20/sniffy/internal/log"
 )
 
 const maxDepth = 7

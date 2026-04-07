@@ -5,7 +5,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
-	scent "github.com/jwc20/sniffa/internal/scent"
+	scent "github.com/jwc20/sniffy/internal/scent"
 )
 
 const maxDepth = 10

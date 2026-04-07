@@ -3,7 +3,7 @@
 version: "3"
 
 env:
-  PACKAGE_NAME: "github.com/jwc20/sniffa"
+  PACKAGE_NAME: "github.com/jwc20/sniffy"
 
 tasks:
   default:
@@ -26,26 +26,26 @@ tasks:
       - go test -v ./...
 
   build:
-    desc: Build the sniffa binary into /bin
+    desc: Build the sniffy binary into /bin
     sources:
       - "./**/*.go"
     generates:
-      - "./bin/sniffa"
+      - "./bin/sniffy"
     cmds:
-      - go build -v -o ./bin/sniffa ./cmd/sniffa
+      - go build -v -o ./bin/sniffy ./cmd/sniffy
 
   install:
-    desc: Install sniffa to GOBIN
+    desc: Install sniffy to GOBIN
     sources:
       - "./**/*.go"
     cmds:
-      - go install -v ./cmd/sniffa
+      - go install -v ./cmd/sniffy
 
   run:
-    desc: Build and run sniffa locally
+    desc: Build and run sniffy locally
     cmds:
       - task: build
-      - ./bin/sniffa {{.CLI_ARGS | default "."}}
+      - ./bin/sniffy {{.CLI_ARGS | default "."}}
 
   clean:
     desc: Remove build artifacts

@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	filewatcher "github.com/jwc20/sniffa/internal/filewatcher"
-	scent "github.com/jwc20/sniffa/internal/scent"
+	filewatcher "github.com/jwc20/sniffy/internal/filewatcher"
+	scent "github.com/jwc20/sniffy/internal/scent"
 )
 
 type fileChangedMsg struct {
