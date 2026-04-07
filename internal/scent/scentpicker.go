@@ -32,9 +32,48 @@ type Scent struct {
 	Runners    []RunnerConfig    `yaml:"runners"`
 }
 
+// defaultExtensions are the extensions sniffa supports out of the box,
+// without requiring a scent.yml.
+var defaultExtensions = []string{
+	".go",
+	".ts", ".tsx",
+	".js", ".jsx",
+	".py",
+	".rs",
+	".rb",
+}
+
+// defaultRunners maps file extensions to built-in runner commands.
+// These are used when no scent.yml is present (or when scent.yml has no
+// matching validator). Users can override any of these via scent.yml.
+var defaultRunners = map[string]string{
+	".go":  "go test ./...",
+	".ts":  "npx jest --passWithNoTests",
+	".tsx": "npx jest --passWithNoTests",
+	".js":  "npx jest --passWithNoTests",
+	".jsx": "npx jest --passWithNoTests",
+	".py":  "python -m pytest",
+	".rs":  "cargo test",
+	".rb":  "bundle exec rspec",
+}
+
+// DefaultRunnerForExt returns a built-in RunnerConfig for the given extension,
+// or nil if the extension is unknown. The caller should prefer a scent.yml
+// runner over this when one exists.
+func DefaultRunnerForExt(ext string) *RunnerConfig {
+	cmd, ok := defaultRunners[strings.ToLower(ext)]
+	if !ok {
+		return nil
+	}
+	return &RunnerConfig{
+		Name:    "default-" + strings.TrimPrefix(ext, "."),
+		Command: cmd,
+	}
+}
+
 func (s *Scent) Extensions() []string {
 	if s == nil {
-		return []string{".go"}
+		return defaultExtensions
 	}
 	seen := map[string]bool{}
 	var exts []string
@@ -48,7 +87,7 @@ func (s *Scent) Extensions() []string {
 		}
 	}
 	if len(exts) == 0 {
-		return []string{".go"}
+		return defaultExtensions
 	}
 	return exts
 }
@@ -65,13 +104,16 @@ func (s *Scent) IsTestFile(filename string) bool {
 				matched, err := filepath.Match(v.TestPattern, base)
 				return err == nil && matched
 			}
-			return isDefaultTestFile(base, ext)
+			return IsDefaultTestFile(base, ext)
 		}
 	}
 	return false
 }
 
-func isDefaultTestFile(base, ext string) bool {
+// IsDefaultTestFile reports whether a filename looks like a test file for the
+// given extension using sniffa's built-in heuristics. This is used when no
+// scent.yml is present.
+func IsDefaultTestFile(base, ext string) bool {
 	switch ext {
 	case ".go":
 		return strings.HasSuffix(base, "_test.go")

@@ -71,23 +71,46 @@ func processTestFile(dir, name string, exts []string, s *scent.Scent) (Test, boo
 			continue
 		}
 		fullPath := filepath.Join(dir, name)
-		if ext == ".go" && !strings.HasSuffix(name, "_test.go") {
-			return Test{}, false
-		} else if s != nil && !s.IsTestFile(fullPath) {
-			return Test{}, false
-		} else if ext != ".go" && s == nil {
-			return Test{}, false
+
+		// Filter to test files only.
+		if s != nil {
+			if !s.IsTestFile(fullPath) {
+				return Test{}, false
+			}
+		} else {
+			// No scent.yml — apply built-in test-file detection.
+			if !scent.IsDefaultTestFile(filepath.Base(fullPath), ext) {
+				return Test{}, false
+			}
 		}
+
 		t := Test{
 			path:    fullPath,
 			pkg:     filepath.Clean(dir),
 			enabled: true,
 		}
-		if ext == ".go" {
+
+		switch {
+		case ext == ".go":
+			// Go: parse test function names for targeted -run flag.
 			t.names = parseTestNames(fullPath)
-		} else if s != nil {
-			t.runner = s.RunnerForFile(fullPath)
+		case s != nil:
+			// scent.yml present: use its configured runner, fall back to default.
+			if r := s.RunnerForFile(fullPath); r != nil {
+				t.runner = r
+			} else {
+				t.runner = scent.DefaultRunnerForExt(ext)
+			}
+		default:
+			// No scent.yml: use the built-in default runner for this extension.
+			t.runner = scent.DefaultRunnerForExt(ext)
 		}
+
+		// If we ended up with no runner for a non-Go file, skip it.
+		if ext != ".go" && t.runner == nil {
+			return Test{}, false
+		}
+
 		return t, true
 	}
 	return Test{}, false
